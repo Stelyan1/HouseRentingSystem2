@@ -1,21 +1,57 @@
 pipeline {
-    agent { label 'windows' }
+    agent any
 
     environment {
         BUILD_CONFIGURATION = 'Release'
-        SOLUTION_FILE = 'MyApp.sln'
+        SOLUTION_FILE = 'HouseRentingSystem.sln'
+        PROJECT_NAME = 'HouseRentingSystem.Web'
     }
 
     stages {
-        stage('Restore') {
+        stage('Restore NuGet Packages') {
             steps {
                 bat 'nuget restore %SOLUTION_FILE%'
             }
         }
+
         stage('Build') {
             steps {
-                bat 'msbuild %SOLUTION_FILE% /p:Configuration=%BUILD_CONFIGURATION%'
+                bat "msbuild %SOLUTION_FILE% /p:Configuration=%BUILD_CONFIGURATION%"
             }
+        }
+
+        stage('Run Tests') {
+            steps {
+                bat "vstest.console.exe .\\HouseRentingSystem.Tests\\bin\\%BUILD_CONFIGURATION%\\HouseRentingSystem.Tests.dll"
+            }
+        }
+
+        stage('Publish') {
+            steps {
+                bat """
+                dotnet publish .\\%PROJECT_NAME%\\%PROJECT_NAME%.csproj ^
+                    -c %BUILD_CONFIGURATION% ^
+                    -o published
+                """
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                bat 'xcopy /Y /E /I published\\* "C:\\inetpub\\wwwroot\\HouseRentingSystem\\"'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up...'
+        }
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
