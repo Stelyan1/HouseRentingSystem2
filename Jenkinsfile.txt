@@ -3,42 +3,39 @@ pipeline {
 
     environment {
         BUILD_CONFIGURATION = 'Release'
-        SOLUTION_FILE = 'HouseRentingSystem.sln'
-        PROJECT_NAME = 'HouseRentingSystem.Web'
+        PROJECT_FILE = 'HouseRentingSystem.Web/HouseRentingSystem.Web.csproj'
+        TEST_PROJECT = 'HouseRentingSystem.Tests/HouseRentingSystem.Tests.csproj'
+        PUBLISH_DIR = 'published'
     }
 
     stages {
-        stage('Restore NuGet Packages') {
+        stage('Restore') {
             steps {
-                bat 'nuget restore %SOLUTION_FILE%'
+                bat "dotnet restore %PROJECT_FILE%"
             }
         }
 
         stage('Build') {
             steps {
-                bat "msbuild %SOLUTION_FILE% /p:Configuration=%BUILD_CONFIGURATION%"
+                bat "dotnet build %PROJECT_FILE% --configuration %BUILD_CONFIGURATION% --no-restore"
             }
         }
 
-        stage('Run Tests') {
+        stage('Test') {
             steps {
-                bat "vstest.console.exe .\\HouseRentingSystem.Tests\\bin\\%BUILD_CONFIGURATION%\\HouseRentingSystem.Tests.dll"
+                bat "dotnet test %TEST_PROJECT% --configuration %BUILD_CONFIGURATION% --no-build"
             }
         }
 
         stage('Publish') {
             steps {
-                bat """
-                dotnet publish .\\%PROJECT_NAME%\\%PROJECT_NAME%.csproj ^
-                    -c %BUILD_CONFIGURATION% ^
-                    -o published
-                """
+                bat "dotnet publish %PROJECT_FILE% --configuration %BUILD_CONFIGURATION% --output %PUBLISH_DIR% --no-build"
             }
         }
 
         stage('Deploy') {
             steps {
-                bat 'xcopy /Y /E /I published\\* "C:\\inetpub\\wwwroot\\HouseRentingSystem\\"'
+                bat "xcopy /Y /E /I %PUBLISH_DIR%\\* \"C:\\inetpub\\wwwroot\\HouseRentingSystem\\\""
             }
         }
     }
