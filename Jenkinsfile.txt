@@ -1,0 +1,21 @@
+pipeline {
+    agent { label 'windows' }
+
+    environment {
+        BUILD_CONFIGURATION = 'Release'
+        SOLUTION_FILE = 'MyApp.sln'
+    }
+
+    stages {
+        stage('Restore') {
+            steps {
+                bat 'nuget restore %SOLUTION_FILE%'
+            }
+        }
+        stage('Build') {
+            steps {
+                bat 'msbuild %SOLUTION_FILE% /p:Configuration=%BUILD_CONFIGURATION%'
+            }
+        }
+    }
+}
